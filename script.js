@@ -1,15 +1,17 @@
+var aux = false;
+
 var canvas = document.getElementById('gamecanvas');
-canvas.width = 180;
-canvas.height = 120;
+canvas.width = 240;
+canvas.height = 140;
 var ctx = canvas.getContext('2d');
 
-var pixscale = 5;
+var pixscale = 4;
 canvas.style.width = canvas.width*pixscale;
 canvas.style.height = canvas.height*pixscale;
 
 var auxcanvas = document.getElementById('auxcanvas');
-auxcanvas.width = 320/2*0;
-auxcanvas.height = 320/2*0;
+auxcanvas.width = 160*aux;
+auxcanvas.height = 160*aux;
 var auxctx = auxcanvas.getContext('2d');
 
 var logdiv = document.getElementById('log');
@@ -169,11 +171,12 @@ function onframe() {
 	if(player.rot < -Math.PI)
 		player.rot += 2*Math.PI;
 	drawframe();
-	// auxframe();
+	if(aux)
+		auxframe();
 }
 
 // Aux variables
-const tilesize = 48/2;
+const tilesize = 24;
 const aov = Math.PI/3; // Angle of vision
 function auxframe() {
 	auxctx.clearRect(0,0,auxcanvas.width,auxcanvas.height);
@@ -233,7 +236,7 @@ function drawRay(r) {
 	auxctx.stroke();
 }
 
-const maxdepth = 8;
+const maxdepth = 10;
 const floatth = 0.001// Float threshold
 function ray(ox,oy,ang) {
 	if(ang > Math.PI)
@@ -246,6 +249,9 @@ function ray(ox,oy,ang) {
 	var depth = 0;
 	var hx,hy;
 	var dx,dy;
+	var dirh, dirv;
+	var thid = 0, tvid = 0;
+	var txh = 0,txv = 0; // for textureX
 	if(ang>floatth && ang<Math.PI-floatth) {
 		hy = Math.ceil(oy);
 		hx = ox + (hy-oy)*cosa/sina;
@@ -269,10 +275,18 @@ function ray(ox,oy,ang) {
 		if(i<0 || i>=map.width || j<0 || j>=map.height)
 			break;
 		var cell = map.data[j][i];
-		if(dy>0 && cell[1])
+		if(dy>0 && cell[1]) {
+			txh = hx%1;
+			dirh = 1;
+			thid = cell[1];
 			break;
-		if(dy<0 && cell[3])
+		}
+		if(dy<0 && cell[3]) {
+			txh = 1 - hx%1;
+			dirh = 3;
+			thid = cell[3];
 			break;
+		}
 		hx += dx;
 		hy += dy;
 		i = Math.floor(hx);
@@ -305,10 +319,18 @@ function ray(ox,oy,ang) {
 		if(i<0 || i>=map.width || j<0 || j>=map.height)
 			break;
 		var cell = map.data[j][i];
-		if(dx>0 && cell[0])
+		if(dx>0 && cell[0]) {
+			txv = -vy%1;
+			dirv = 0;
+			tvid = cell[0];
 			break;
-		if(dx<0 && cell[2])
+		}
+		if(dx<0 && cell[2]) {
+			txv = 1 + vy%1;
+			dirv = 2;
+			tvid = cell[2];
 			break;
+		}
 		vx += dx;
 		vy += dy;
 		i += dx;
@@ -317,7 +339,7 @@ function ray(ox,oy,ang) {
 	}
 	var lhx = Math.abs(hx-ox)
 	var lvx = Math.abs(vx-ox)
-	var h = (Math.abs(lhx-lvx)<floatth) ? Math.abs(hy-oy)<Math.abs(vy-oy) : lhx<lvx;
+	var h = (Math.abs(lhx-lvx)<.01) ? Math.abs(hy-oy)<Math.abs(vy-oy) : lhx<lvx;
 	var x = h ? hx : vx;
 	var y = h ? hy : vy;
 	var dist = Math.sqrt(Math.pow(x-player.x,2)+Math.pow(y-player.y,2));
@@ -329,7 +351,9 @@ function ray(ox,oy,ang) {
 		d: dist,
 		cosd: dist*Math.cos(ang-player.rot),
 		color: h ? [0,0,255,255] : [0,0,185,255],
-		textureX: h ? x%1 : -y%1
+		textureX: (h ? txh : txv),
+		textureID: (h ? thid : tvid),
+		dir: (h ? dirh : dirv),
 	};
 }
 
@@ -361,7 +385,12 @@ function drawframe() {
 			if(textureI==texture.width)
 				textureI--;
 			if(j>m-h && j<m+h)
-				imdmatrix[j][i] = texture.data[Math.floor(texture.height*(j-m+h)/h/2)][textureI];
+				for(var k=0;k<3;k++)
+					imdmatrix[j][i][k] = texture.data[Math.floor(texture.height*(j-m+h)/h/2)][textureI][k]*(r.dir%2 ? 1 : .85);
+				
+			if(i==0 && j>m-h && j<m+h) {
+				//console.log(texture.dir)
+			}
 		}
 	}
 	// Pass imdmatrix to the canvas
