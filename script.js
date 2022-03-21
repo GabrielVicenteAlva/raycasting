@@ -91,8 +91,36 @@ const wallcollision = 0.05;
 // Textures
 var textures = []
 var textureDirs = ['tile1.png']
+var texturecanvas = document.createElement('canvas');
+var tctx = texturecanvas.getContext('2d');
+
 for(dir of textureDirs) {
-	
+	var img = new Image();
+	img.src = dir;
+	img.onload = function() {
+		texturecanvas.width = img.width;
+		texturecanvas.height = img.height;
+		tctx.drawImage(img, 0, 0);
+		img.style.display = 'none';
+		var imd = tctx.getImageData(0, 0, img.width, img.height);
+		// console.log(imd);
+		// logdiv.appendChild(tc);
+		
+		var texture = Array(img.height);
+		for(var i=0;i<img.height;i++) {
+			texture[i] = Array(img.width);
+			for(var j=0;j<img.width;j++) {
+				texture[i][j] = Array(4);
+				for(var k=0;k<4;k++)
+					texture[i][j][k] = imd.data[4*(i*img.width+j)+k];
+			}
+		}
+		textures.push({
+			data: texture,
+			width: img.width,
+			height: img.height
+		});
+	};
 }
 
 // Frame
@@ -301,7 +329,7 @@ function ray(ox,oy,ang) {
 		d: dist,
 		cosd: dist*Math.cos(ang-player.rot),
 		color: h ? [0,0,255,255] : [0,0,185,255],
-		textureX: 0.
+		textureX: h ? x%1 : -y%1
 	};
 }
 
@@ -325,10 +353,15 @@ function drawframe() {
 		var a = aov/2 - aov*i/canvas.width;
 		var r = ray(player.x,player.y,player.rot+a);
 		var h = 80/r.cosd;
+		var m = canvas.height/2-.5;
 		
 		for(var j=0;j<canvas.height;j++) {
-			if(j>canvas.height/2-h && j<canvas.height/2+h)
-				imdmatrix[j][i] = r.color;
+			var texture = textures[0];
+			var textureI = Math.floor(texture.width*r.textureX);
+			if(textureI==texture.width)
+				textureI--;
+			if(j>m-h && j<m+h)
+				imdmatrix[j][i] = texture.data[Math.floor(texture.height*(j-m+h)/h/2)][textureI];
 		}
 	}
 	// Pass imdmatrix to the canvas
@@ -339,23 +372,10 @@ function drawframe() {
 	ctx.putImageData(imdata,0,0);
 }
 
-window.onload = setInterval(onframe, 1000/60);
+window.onload = setTimeout(function (){
+	setInterval(onframe, 1000/60);
+},100);
 
-var img = new Image();
-var tc = document.createElement('canvas');
-var tcx = tc.getContext('2d');
-img.src = 'tile1.png';
-
-img.onload = function() {
-	tc.width = img.width;
-	tc.height = img.height;
-	tcx.drawImage(img, 0, 0);
-	img.style.display = 'none';
-	var imd = tcx.getImageData(0, 0, img.width, img.height);
-	console.log(imd);
-};
-
-// logdiv.appendChild(tc);
 
 
 
