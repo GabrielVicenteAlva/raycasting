@@ -339,7 +339,7 @@ function drawframe() {
 	ctx.putImageData(imdata,0,0);
 }
 
-// window.onload = setInterval(onframe, 1000/60);
+window.onload = setInterval(onframe, 1000/60);
 
 var img = new Image();
 var tc = document.createElement('canvas');
@@ -355,7 +355,7 @@ img.onload = function() {
 	console.log(imd);
 };
 
-logdiv.appendChild(tc);
+// logdiv.appendChild(tc);
 
 
 
