@@ -44,6 +44,12 @@ function keyDownHandler(e) {
 	case 'd':
 		keys.right = true;
 		break;
+	case 'q':
+		keys.q = true;
+		break;
+	case 'e':
+		keys.e = true;
+		break;
 	}
 }
 
@@ -65,6 +71,12 @@ function keyUpHandler(e) {
 	case 'd':
 		keys.right = false;
 		break;
+	case 'q':
+		keys.q = false;
+		break;
+	case 'e':
+		keys.e = false;
+		break;
 	}
 }
 
@@ -73,7 +85,7 @@ var player = {
 	x: 2.5,
 	y: -2.5,
 	rot: 0,
-	speed: .05,
+	speed: .07,
 	rotspeed: Math.PI*.01
 }
 var map = {
@@ -91,37 +103,37 @@ map.width = map.data[0].length;
 const wallcollision = 0.05;
 
 // Textures
-var textures = []
-var textureDirs = ['tile1.png']
-var texturecanvas = document.createElement('canvas');
-var tctx = texturecanvas.getContext('2d');
+var textureDirs = ['tile1.png','tile1.png','tile2.png'];
+var textures = Array(textureDirs.length);
 
-for(dir of textureDirs) {
+for(var i=0;i<textures.length;i++) {
 	var img = new Image();
-	img.src = dir;
+	img.src = textureDirs[i];
+	img.ind = i;
 	img.onload = function() {
-		texturecanvas.width = img.width;
-		texturecanvas.height = img.height;
-		tctx.drawImage(img, 0, 0);
-		img.style.display = 'none';
-		var imd = tctx.getImageData(0, 0, img.width, img.height);
-		// console.log(imd);
-		// logdiv.appendChild(tc);
-		
-		var texture = Array(img.height);
-		for(var i=0;i<img.height;i++) {
-			texture[i] = Array(img.width);
-			for(var j=0;j<img.width;j++) {
+		var texturecanvas = document.createElement('canvas');
+		var tctx = texturecanvas.getContext('2d');
+		texturecanvas.width = this.width;
+		texturecanvas.height = this.height;
+		tctx.drawImage(this, 0, 0);
+		this.style.display = 'none';
+		var imd = tctx.getImageData(0, 0, this.width, this.height);		
+		var texture = Array(this.height);
+		for(var i=0;i<this.height;i++) {
+			texture[i] = Array(this.width);
+			for(var j=0;j<this.width;j++) {
 				texture[i][j] = Array(4);
 				for(var k=0;k<4;k++)
-					texture[i][j][k] = imd.data[4*(i*img.width+j)+k];
+					texture[i][j][k] = imd.data[4*(i*this.width+j)+k];
 			}
 		}
-		textures.push({
+		texturecanvas.remove();
+		textures[this.ind] = {
 			data: texture,
-			width: img.width,
-			height: img.height
-		});
+			width: this.width,
+			height: this.height,
+			id: this.ind
+		};
 	};
 }
 
@@ -157,6 +169,35 @@ function onframe() {
 		player.i = Math.floor(player.x);
 		player.cell = map.data[player.j][player.i];
 		player.y -= player.speed*player.sinr;
+		if(player.cell[1] && player.y+player.j>-wallcollision)
+			player.y = -player.j-wallcollision;
+		if(player.cell[3] && player.y+player.j<-1+wallcollision)
+			player.y = -player.j-1+wallcollision;
+	}
+	if(keys.q) {
+		player.x -= player.speed*player.sinr;
+		if(player.cell[0] && player.x-player.i>1-wallcollision)
+			player.x = player.i+1-wallcollision;
+		if(player.cell[2] && player.x-player.i<wallcollision)
+			player.x = player.i+wallcollision;
+		player.i = Math.floor(player.x);
+		player.cell = map.data[player.j][player.i];
+		player.y += player.speed*player.cosr;
+		if(player.cell[1] && player.y+player.j>-wallcollision)
+			player.y = -player.j-wallcollision;
+		if(player.cell[3] && player.y+player.j<-1+wallcollision)
+			player.y = -player.j-1+wallcollision;
+	}
+	
+	if(keys.e) {
+		player.x += player.speed*player.sinr;
+		if(player.cell[0] && player.x-player.i>1-wallcollision)
+			player.x = player.i+1-wallcollision;
+		if(player.cell[2] && player.x-player.i<wallcollision)
+			player.x = player.i+wallcollision;
+		player.i = Math.floor(player.x);
+		player.cell = map.data[player.j][player.i];
+		player.y -= player.speed*player.cosr;
 		if(player.cell[1] && player.y+player.j>-wallcollision)
 			player.y = -player.j-wallcollision;
 		if(player.cell[3] && player.y+player.j<-1+wallcollision)
@@ -349,6 +390,7 @@ function ray(ox,oy,ang) {
 		x: x,
 		y: y,
 		d: dist,
+		// cosd: dist*Math.sin(ang-player.rot),
 		cosd: dist*Math.cos(ang-player.rot),
 		color: h ? [0,0,255,255] : [0,0,185,255],
 		textureX: (h ? txh : txv),
@@ -376,20 +418,30 @@ function drawframe() {
 	for(var i=0;i<canvas.width;i++) {
 		var a = aov/2 - aov*i/canvas.width;
 		var r = ray(player.x,player.y,player.rot+a);
-		var h = 80/r.cosd;
+		var h = 110/r.cosd;
 		var m = canvas.height/2-.5;
+		var texture = textures[1];
+		var floorTexture = textures[2];
+		var textureI = Math.floor(texture.width*r.textureX);
 		
 		for(var j=0;j<canvas.height;j++) {
-			var texture = textures[0];
-			var textureI = Math.floor(texture.width*r.textureX);
 			if(textureI==texture.width)
 				textureI--;
 			if(j>m-h && j<m+h)
 				for(var k=0;k<3;k++)
-					imdmatrix[j][i][k] = texture.data[Math.floor(texture.height*(j-m+h)/h/2)][textureI][k]*(r.dir%2 ? 1 : .85);
-				
-			if(i==0 && j>m-h && j<m+h) {
-				//console.log(texture.dir)
+					imdmatrix[j][i][k] = texture.data[Math.floor(texture.height*(j-m+h)/h/2)][textureI][k]*(r.dir%2 ? 1 : .8);
+			if(j>=m+h) {
+				var t = h/(j-m);
+				var x = r.ox*(1-t) + r.x*t;
+				var y = r.oy*(1-t) + r.y*t;
+				/*if(i==0 && j==canvas.height-10){
+					logdiv.innerHTML = r.ox + ' ' + r.oy + '<br>';
+					logdiv.innerHTML += r.x + ' ' + r.y + '<br>';
+					logdiv.innerHTML += t + '<br>';
+					logdiv.innerHTML += x + ' ' + y + '<br>';
+					logdiv.innerHTML += (Math.floor((x%1)*floorTexture.width) + ' ' + Math.floor((-y%1)*floorTexture.height));
+				}*/
+				imdmatrix[j][i] = floorTexture.data[Math.floor((-y%1)*floorTexture.height)][Math.floor((x%1)*floorTexture.width)];
 			}
 		}
 	}
@@ -401,13 +453,6 @@ function drawframe() {
 	ctx.putImageData(imdata,0,0);
 }
 
-window.onload = setTimeout(function (){
+window.onload = setTimeout(function() {
 	setInterval(onframe, 1000/60);
 },100);
-
-
-
-
-
-
-

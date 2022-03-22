@@ -1,3 +1,7 @@
+body {
+	max-width: 960px;
+	margin: auto;
+}
 #gamecanvas {
 	image-rendering: pixelated;
 }
