@@ -28,54 +28,58 @@ document.addEventListener("keyup", keyUpHandler, false);
 
 function keyDownHandler(e) {
     switch(e.key) {
-	case 'ArrowUp':
 	case 'w':
-		keys.up = true;
+		keys.movU = true;
+		break;
+	case 's':
+		keys.movD = true;
+		break;
+	case 'a':
+		keys.movL = true;
+		break;
+	case 'd':
+		keys.movR = true;
+		break;
+	case 'ArrowUp':
+		keys.camU = true;
 		break;
 	case 'ArrowDown':
-	case 's':
-		keys.down = true;
+		keys.camD = true;
 		break;
 	case 'ArrowLeft':
-	case 'a':
-		keys.left = true;
+		keys.camL = true;
 		break;
 	case 'ArrowRight':
-	case 'd':
-		keys.right = true;
-		break;
-	case 'q':
-		keys.q = true;
-		break;
-	case 'e':
-		keys.e = true;
+		keys.camR = true;
 		break;
 	}
 }
 
 function keyUpHandler(e) {
     switch(e.key) {
-	case 'ArrowUp':
 	case 'w':
-		keys.up = false;
+		keys.movU = false;
+		break;
+	case 's':
+		keys.movD = false;
+		break;
+	case 'a':
+		keys.movL = false;
+		break;
+	case 'd':
+		keys.movR = false;
+		break;
+	case 'ArrowUp':
+		keys.camU = false;
 		break;
 	case 'ArrowDown':
-	case 's':
-		keys.down = false;
+		keys.camD = false;
 		break;
 	case 'ArrowLeft':
-	case 'a':
-		keys.left = false;
+		keys.camL = false;
 		break;
 	case 'ArrowRight':
-	case 'd':
-		keys.right = false;
-		break;
-	case 'q':
-		keys.q = false;
-		break;
-	case 'e':
-		keys.e = false;
+		keys.camR = false;
 		break;
 	}
 }
@@ -86,7 +90,10 @@ var player = {
 	y: -2.5,
 	rot: 0,
 	speed: .07,
-	rotspeed: Math.PI*.01
+	rotspeed: Math.PI*.01,
+	shearing: 0,
+	shearspeed: 5,
+	maxshear: 100
 }
 var map = {
 	data: [
@@ -138,7 +145,10 @@ for(var i=0;i<textures.length;i++) {
 }
 
 // Frame
-function onframe() {
+var lastTime = 0;
+function onframe(time) {
+	var dt = (time - lastTime)/1000*60;
+	lastTime = time;
 	logdiv.innerHTML = '';
 	player.cosr = Math.cos(player.rot);
 	player.sinr = Math.sin(player.rot);
@@ -146,74 +156,83 @@ function onframe() {
 	player.j = Math.floor(-player.y);
 	player.cell = map.data[player.j][player.i];
 	
-	if(keys.up) {
-		player.x += player.speed*player.cosr;
+	if(keys.movU) {
+		player.x += player.speed*player.cosr *dt;
 		if(player.cell[0] && player.x-player.i>1-wallcollision)
 			player.x = player.i+1-wallcollision;
 		if(player.cell[2] && player.x-player.i<wallcollision)
 			player.x = player.i+wallcollision;
 		player.i = Math.floor(player.x);
 		player.cell = map.data[player.j][player.i];
-		player.y += player.speed*player.sinr;
+		player.y += player.speed*player.sinr *dt;
 		if(player.cell[1] && player.y+player.j>-wallcollision)
 			player.y = -player.j-wallcollision;
 		if(player.cell[3] && player.y+player.j<-1+wallcollision)
 			player.y = -player.j-1+wallcollision;
 	}
-	if(keys.down) {
-		player.x -= player.speed*player.cosr;
+	if(keys.movD) {
+		player.x -= player.speed*player.cosr *dt;
 		if(player.cell[0] && player.x-player.i>1-wallcollision)
 			player.x = player.i+1-wallcollision;
 		if(player.cell[2] && player.x-player.i<wallcollision)
 			player.x = player.i+wallcollision;
 		player.i = Math.floor(player.x);
 		player.cell = map.data[player.j][player.i];
-		player.y -= player.speed*player.sinr;
+		player.y -= player.speed*player.sinr *dt;
 		if(player.cell[1] && player.y+player.j>-wallcollision)
 			player.y = -player.j-wallcollision;
 		if(player.cell[3] && player.y+player.j<-1+wallcollision)
 			player.y = -player.j-1+wallcollision;
 	}
-	if(keys.q) {
-		player.x -= player.speed*player.sinr;
+	if(keys.movL) {
+		player.x -= player.speed*player.sinr *dt;
 		if(player.cell[0] && player.x-player.i>1-wallcollision)
 			player.x = player.i+1-wallcollision;
 		if(player.cell[2] && player.x-player.i<wallcollision)
 			player.x = player.i+wallcollision;
 		player.i = Math.floor(player.x);
 		player.cell = map.data[player.j][player.i];
-		player.y += player.speed*player.cosr;
+		player.y += player.speed*player.cosr *dt;
 		if(player.cell[1] && player.y+player.j>-wallcollision)
 			player.y = -player.j-wallcollision;
 		if(player.cell[3] && player.y+player.j<-1+wallcollision)
 			player.y = -player.j-1+wallcollision;
 	}
 	
-	if(keys.e) {
-		player.x += player.speed*player.sinr;
+	if(keys.movR) {
+		player.x += player.speed*player.sinr *dt;
 		if(player.cell[0] && player.x-player.i>1-wallcollision)
 			player.x = player.i+1-wallcollision;
 		if(player.cell[2] && player.x-player.i<wallcollision)
 			player.x = player.i+wallcollision;
 		player.i = Math.floor(player.x);
 		player.cell = map.data[player.j][player.i];
-		player.y -= player.speed*player.cosr;
+		player.y -= player.speed*player.cosr *dt;
 		if(player.cell[1] && player.y+player.j>-wallcollision)
 			player.y = -player.j-wallcollision;
 		if(player.cell[3] && player.y+player.j<-1+wallcollision)
 			player.y = -player.j-1+wallcollision;
 	}
-	if(keys.left)
-		player.rot += player.rotspeed;
-	if(keys.right)
-		player.rot -= player.rotspeed;
-	if(player.rot > Math.PI)
+	if(keys.camL)
+		player.rot += player.rotspeed *dt;
+	if(keys.camR)
+		player.rot -= player.rotspeed *dt;
+	if(keys.camU)
+		player.shearing += player.shearspeed *dt;
+	if(keys.camD)
+		player.shearing -= player.shearspeed *dt;
+	while(player.rot > Math.PI)
 		player.rot -= 2*Math.PI;
-	if(player.rot < -Math.PI)
+	while(player.rot < -Math.PI)
 		player.rot += 2*Math.PI;
+	if(player.shearing > player.maxshear)
+		player.shearing = player.maxshear;
+	if(player.shearing < -player.maxshear)
+		player.shearing = -player.maxshear;
 	drawframe();
 	if(aux)
 		auxframe();
+	window.requestAnimationFrame(onframe);
 }
 
 // Aux variables
@@ -410,16 +429,13 @@ function drawframe() {
 	// ctx.clearRect(0,0,canvas.width,canvas.height);
 	for(var i=0;i<canvas.height;i++)
 		for(var j=0;j<canvas.width;j++)
-			if(i<canvas.height/2)
-				imdmatrix[i][j] = [200,200,200,255];
-			else
-				imdmatrix[i][j] = [150,150,150,255];
+			imdmatrix[i][j] = [135,206,235,255];
 	ctx.lineWidth = 1;
 	for(var i=0;i<canvas.width;i++) {
 		var a = aov/2 - aov*i/canvas.width;
 		var r = ray(player.x,player.y,player.rot+a);
 		var h = 110/r.cosd;
-		var m = canvas.height/2-.5;
+		var m = canvas.height/2-.5+player.shearing;
 		var texture = textures[1];
 		var floorTexture = textures[2];
 		var textureI = Math.floor(texture.width*r.textureX);
@@ -453,6 +469,43 @@ function drawframe() {
 	ctx.putImageData(imdata,0,0);
 }
 
-window.onload = setTimeout(function() {
-	setInterval(onframe, 1000/60);
+setTimeout(function() {
+	window.requestAnimationFrame(onframe);
 },100);
+
+
+// Mouse control
+canvas.requestPointerLock = canvas.requestPointerLock ||
+                            canvas.mozRequestPointerLock;
+
+document.exitPointerLock = document.exitPointerLock ||
+                           document.mozExitPointerLock;
+
+canvas.onclick = function() {
+  canvas.requestPointerLock();
+}
+document.addEventListener('pointerlockchange', lockChangeAlert, false);
+document.addEventListener('mozpointerlockchange', lockChangeAlert, false);
+function lockChangeAlert() {
+  if (document.pointerLockElement === canvas ||
+      document.mozPointerLockElement === canvas) {
+    console.log('The pointer lock status is now locked');
+    document.addEventListener("mousemove", mouseMove, false);
+  } else {
+    console.log('The pointer lock status is now unlocked');
+    document.removeEventListener("mousemove", mouseMove, false);
+  }
+}
+function mouseMove(e) {
+	player.rot -= player.rotspeed * e.movementX * .1;
+	player.shearing -= player.shearspeed * e.movementY * .1;
+	if(player.rot > Math.PI)
+		player.rot -= 2*Math.PI;
+	if(player.rot < -Math.PI)
+		player.rot += 2*Math.PI;
+	if(player.shearing > player.maxshear)
+		player.shearing = player.maxshear;
+	if(player.shearing < -player.maxshear)
+		player.shearing = -player.maxshear;
+	// console.log(e.movementX + ' ' + e.movementY)
+}
