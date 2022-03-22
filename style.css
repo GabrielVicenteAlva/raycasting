@@ -4,4 +4,5 @@ body {
 }
 #gamecanvas {
 	image-rendering: pixelated;
+	cursor: pointer;
 }
