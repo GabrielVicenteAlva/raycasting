@@ -52,6 +52,9 @@ function keyDownHandler(e) {
 	case 'ArrowRight':
 		keys.camR = true;
 		break;
+	case ' ':
+		keys.jump = true;
+		break;
 	}
 }
 
@@ -81,6 +84,9 @@ function keyUpHandler(e) {
 	case 'ArrowRight':
 		keys.camR = false;
 		break;
+	case ' ':
+		keys.jump = false;
+		break;
 	}
 }
 
@@ -93,7 +99,10 @@ var player = {
 	rotspeed: Math.PI*.01,
 	shearing: 0,
 	shearspeed: 5,
-	maxshear: 100
+	maxshear: 100,
+	z: 0,
+	zspeed: 0,
+	jumping: false
 }
 var map = {
 	data: [
@@ -230,6 +239,20 @@ function onframe(time) {
 	if(player.shearing < -player.maxshear)
 		player.shearing = -player.maxshear;
 	drawframe();
+	
+	// Jumping
+	if(keys.jump && player.z<=0) {
+		player.zspeed = 15;
+	}
+	if(!keys.jump && player.z<=0) {
+		player.zspeed = 0;
+		player.z = 0;
+	}
+	if(player.zspeed>0 || player.z>0) {
+		player.zspeed -= 1;
+		player.z += player.zspeed;
+	}
+	
 	if(aux)
 		auxframe();
 	window.requestAnimationFrame(onframe);
@@ -435,6 +458,7 @@ function drawframe() {
 		var a = aov/2 - aov*i/canvas.width;
 		var r = ray(player.x,player.y,player.rot+a);
 		var h = 110/r.cosd;
+		var dz = player.z/r.cosd
 		var m = canvas.height/2-.5+player.shearing;
 		var texture = textures[1];
 		var floorTexture = textures[2];
@@ -443,11 +467,11 @@ function drawframe() {
 		for(var j=0;j<canvas.height;j++) {
 			if(textureI==texture.width)
 				textureI--;
-			if(j>m-h && j<m+h)
+			if(j>m-h+dz && j<m+h+dz)
 				for(var k=0;k<3;k++)
-					imdmatrix[j][i][k] = texture.data[Math.floor(texture.height*(j-m+h)/h/2)][textureI][k]*(r.dir%2 ? 1 : .8);
-			if(j>=m+h) {
-				var t = h/(j-m);
+					imdmatrix[j][i][k] = texture.data[Math.floor(texture.height*(j-m+h-dz)/h/2)][textureI][k]*(r.dir%2 ? 1 : .8)*(r.d>2?4/(r.d+2):1);
+			if(j>=m+h+dz) {
+				var t = (h+dz)/(j-m);
 				var x = r.ox*(1-t) + r.x*t;
 				var y = r.oy*(1-t) + r.y*t;
 				/*if(i==0 && j==canvas.height-10){
@@ -457,7 +481,8 @@ function drawframe() {
 					logdiv.innerHTML += x + ' ' + y + '<br>';
 					logdiv.innerHTML += (Math.floor((x%1)*floorTexture.width) + ' ' + Math.floor((-y%1)*floorTexture.height));
 				}*/
-				imdmatrix[j][i] = floorTexture.data[Math.floor((-y%1)*floorTexture.height)][Math.floor((x%1)*floorTexture.width)];
+				for(var k=0;k<3;k++)
+					imdmatrix[j][i][k] = floorTexture.data[Math.floor((-y%1)*floorTexture.height)][Math.floor((x%1)*floorTexture.width)][k]*(r.d*t>2?4/(r.d*t+2):1);
 			}
 		}
 	}
