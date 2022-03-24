@@ -118,41 +118,6 @@ map.height = map.data.length;
 map.width = map.data[0].length;
 const wallcollision = 0.05;
 
-// Textures
-var textureDirs = ['tile1.png','tile1.png','tile2.png'];
-var textures = Array(textureDirs.length);
-
-for(var i=0;i<textures.length;i++) {
-	var img = new Image();
-	img.src = textureDirs[i];
-	img.ind = i;
-	img.onload = function() {
-		var texturecanvas = document.createElement('canvas');
-		var tctx = texturecanvas.getContext('2d');
-		texturecanvas.width = this.width;
-		texturecanvas.height = this.height;
-		tctx.drawImage(this, 0, 0);
-		this.style.display = 'none';
-		var imd = tctx.getImageData(0, 0, this.width, this.height);		
-		var texture = Array(this.height);
-		for(var i=0;i<this.height;i++) {
-			texture[i] = Array(this.width);
-			for(var j=0;j<this.width;j++) {
-				texture[i][j] = Array(4);
-				for(var k=0;k<4;k++)
-					texture[i][j][k] = imd.data[4*(i*this.width+j)+k];
-			}
-		}
-		texturecanvas.remove();
-		textures[this.ind] = {
-			data: texture,
-			width: this.width,
-			height: this.height,
-			id: this.ind
-		};
-	};
-}
-
 // Frame
 var lastTime = 0;
 function onframe(time) {
@@ -493,11 +458,43 @@ function drawframe() {
 				imdata.data[4*(i*canvas.width+j)+k] = imdmatrix[i][j][k];
 	ctx.putImageData(imdata,0,0);
 }
+// Textures
+var textureDirs = ['tile1.png','tile1.png','tile2.png'];
+var textures = Array(textureDirs.length);
 
-setTimeout(function() {
-	window.requestAnimationFrame(onframe);
-},100);
-
+function loadTexture(id) {
+	return new Promise(function(resolve, reject) {
+		var img = new Image();
+		img.src = textureDirs[id];
+		img.id = id;
+		img.onload = function() {
+			var texturecanvas = document.createElement('canvas');
+			var tctx = texturecanvas.getContext('2d');
+			texturecanvas.width = this.width;
+			texturecanvas.height = this.height;
+			tctx.drawImage(this, 0, 0);
+			this.style.display = 'none';
+			var imd = tctx.getImageData(0, 0, this.width, this.height);	
+			var texture = Array(this.height);
+			for(var i=0;i<this.height;i++) {
+				texture[i] = Array(this.width);
+				for(var j=0;j<this.width;j++) {
+					texture[i][j] = Array(4);
+					for(var k=0;k<4;k++)
+						texture[i][j][k] = imd.data[4*(i*this.width+j)+k];
+				}
+			}
+			texturecanvas.remove();
+			this.remove();
+			resolve({
+				data: texture,
+				width: this.width,
+				height: this.height,
+				id: this.id
+			});
+		};
+	});
+}
 
 // Mouse control
 canvas.requestPointerLock = canvas.requestPointerLock ||
@@ -534,3 +531,11 @@ function mouseMove(e) {
 		player.shearing = -player.maxshear;
 	// console.log(e.movementX + ' ' + e.movementY)
 }
+
+// Load
+async function start() {
+	for(var i=0;i<textures.length;i++)
+		textures[i] = await loadTexture(i);
+	window.requestAnimationFrame(onframe);
+}
+start();
