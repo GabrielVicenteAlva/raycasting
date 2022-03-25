@@ -93,8 +93,8 @@ function keyUpHandler(e) {
 // Game variables
 var player = {
 	x: 2.5,
-	y: -2.5,
-	rot: 0,
+	y: -4.5,
+	rot: -Math.PI/2,
 	speed: .07,
 	rotspeed: Math.PI*.01,
 	shearing: 0,
@@ -106,12 +106,16 @@ var player = {
 }
 var map = {
 	data: [
-		[ [1,1,1,0], [0,0,0,0], [0,1,1,0], [0,1,0,0], [0,1,0,1], [1,1,0,0] ],
-		[ [0,0,1,0], [0,1,0,0], [0,0,0,0], [1,0,0,0], [0,0,0,0], [1,0,1,0] ],
-		[ [0,0,1,0], [0,0,0,0], [0,0,0,0], [1,0,0,0], [0,0,0,0], [1,0,1,0] ],
-		[ [0,0,1,0], [0,0,0,0], [0,0,0,0], [0,0,0,1], [0,1,0,1], [1,0,0,1] ],
-		[ [0,0,1,1], [0,0,0,0], [1,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0] ],
-		[ [0,0,0,0], [0,0,1,1], [0,0,0,1], [0,1,0,1], [0,1,0,1], [1,1,0,1] ]
+		[ [0,1,1,0], [0,1,0,1], [0,1,0,1], [1,1,0,0], [0,0,0,0], [0,1,2,1], [0,1,0,1], [0,1,0,1], [0,1,0,1], [1,1,0,0] ],
+		[ [1,0,1,0], [0,0,0,0], [0,0,0,0], [1,0,1,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
+		[ [1,0,1,0], [0,0,0,0], [0,0,0,0], [1,0,1,0], [0,0,0,0], [0,3,3,0,3], [3,3,0,0,3], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
+		[ [0,0,1,0], [0,1,0,0], [0,1,0,0], [1,0,0,0], [0,0,0,0], [0,0,3,0,3], [0,0,0,0,3], [0,1,0,1], [0,1,0,1], [1,0,0,0] ],
+		[ [0,0,1,1], [0,0,0,0], [0,0,0,0], [1,0,0,1], [0,0,0,0], [0,0,3,3,3], [3,0,0,3,3], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
+		[ [0,0,0,0], [0,0,1,0], [1,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
+		[ [0,1,1,0], [0,0,0,0], [0,0,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0], [1,0,0,0] ],
+		[ [0,0,1,0], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [1,0,0,0] ],
+		[ [0,0,1,0], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [0,0,0,0,4], [1,0,0,0] ],
+		[ [0,0,1,1], [0,0,0,1], [0,0,0,1], [0,0,0,1], [0,0,0,1], [0,0,0,1], [0,0,0,1], [0,0,0,1], [0,0,0,1], [1,0,0,1] ]
 	]
 }
 map.height = map.data.length;
@@ -415,9 +419,11 @@ for(var i=0;i<canvas.height;i++) {
 }
 function drawframe() {
 	// ctx.clearRect(0,0,canvas.width,canvas.height);
+	/*
 	for(var i=0;i<canvas.height;i++)
 		for(var j=0;j<canvas.width;j++)
 			imdmatrix[i][j] = [135,206,235,255];
+	*/
 	ctx.lineWidth = 1;
 	for(var i=0;i<canvas.width;i++) {
 		var a = aov/2 - aov*i/canvas.width;
@@ -425,27 +431,35 @@ function drawframe() {
 		var h = 110/r.cosd;
 		var dz = player.z/r.cosd
 		var m = canvas.height/2-.5+player.shearing;
-		var texture = textures[1];
-		var floorTexture = textures[2];
+		var texture = textures[r.textureID];
 		var textureI = Math.floor(texture.width*r.textureX);
 		
+		var skyTexture = textures[5];
+		var skyLoops = 3;
+		var skyI = Math.floor((i*aov/canvas.width-player.rot+Math.PI)*skyTexture.width/Math.PI/2*skyLoops) % skyTexture.width;
+		if(textureI==texture.width)
+			textureI--;
 		for(var j=0;j<canvas.height;j++) {
-			if(textureI==texture.width)
-				textureI--;
-			if(j>m-h+dz && j<m+h+dz)
+			// Sky
+			if(j<=m-h+dz) {
+				for(var k=0;k<3;k++)
+					imdmatrix[j][i][k] = skyTexture.data[(Math.floor(.097*skyLoops*(j-player.shearing+player.maxshear)))%skyTexture.height][skyI][k];
+			}
+			// Wall
+			else if(j<m+h+dz)
 				for(var k=0;k<3;k++)
 					imdmatrix[j][i][k] = texture.data[Math.floor(texture.height*(j-m+h-dz)/h/2)][textureI][k]*(r.dir%2 ? 1 : .8)*(r.d>2?4/(r.d+2):1);
-			if(j>=m+h+dz) {
+			// Floor
+			else {
 				var t = (h+dz)/(j-m);
 				var x = r.ox*(1-t) + r.x*t;
 				var y = r.oy*(1-t) + r.y*t;
-				/*if(i==0 && j==canvas.height-10){
-					logdiv.innerHTML = r.ox + ' ' + r.oy + '<br>';
-					logdiv.innerHTML += r.x + ' ' + r.y + '<br>';
-					logdiv.innerHTML += t + '<br>';
-					logdiv.innerHTML += x + ' ' + y + '<br>';
-					logdiv.innerHTML += (Math.floor((x%1)*floorTexture.width) + ' ' + Math.floor((-y%1)*floorTexture.height));
-				}*/
+				try {
+					var floorID = map.data[Math.floor(-y)][Math.floor(x)][4];
+				} catch(e) {
+					logdiv.innerHTML = Math.floor(-y) + ' ' + Math.floor(x) + ' ' + e;
+				}
+				var floorTexture = textures[floorID ? floorID : 2];
 				for(var k=0;k<3;k++)
 					imdmatrix[j][i][k] = floorTexture.data[Math.floor((-y%1)*floorTexture.height)][Math.floor((x%1)*floorTexture.width)][k]*(r.d*t>2?4/(r.d*t+2):1);
 			}
@@ -459,7 +473,7 @@ function drawframe() {
 	ctx.putImageData(imdata,0,0);
 }
 // Textures
-var textureDirs = ['tile1.png','tile1.png','tile2.png'];
+var textureDirs = ['','tile1.png','tile2.png','tile3.png','tile4.png','skytexture.png'];
 var textures = Array(textureDirs.length);
 
 function loadTexture(id) {
@@ -534,7 +548,13 @@ function mouseMove(e) {
 
 // Load
 async function start() {
-	for(var i=0;i<textures.length;i++)
+	textures[0] = {
+		data: [[[0,0,0,0]]],
+		width: 1,
+		height: 1,
+		id: 0
+	}
+	for(var i=1;i<textures.length;i++)
 		textures[i] = await loadTexture(i);
 	window.requestAnimationFrame(onframe);
 }
