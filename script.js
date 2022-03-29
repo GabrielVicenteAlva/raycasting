@@ -92,8 +92,8 @@ function keyUpHandler(e) {
 
 // Game variables
 var player = {
-	x: 2.5,
-	y: -4.5,
+	x: 2.0001,
+	y: -3.5,
 	rot: -Math.PI/2,
 	speed: .07,
 	rotspeed: Math.PI*.01,
@@ -106,7 +106,7 @@ var player = {
 }
 var map = {
 	data: [
-		[ [0,1,1,0], [0,1,0,1], [0,1,0,1], [1,1,0,0], [0,0,0,0], [0,1,2,1], [0,1,0,1], [0,1,0,1], [0,1,0,1], [1,1,0,0] ],
+		[ [0,1,1,0], [0,1,0,1], [0,1,0,1], [6,1,0,0], [0,1,6,1], [0,1,0,1], [0,1,0,1], [0,1,0,1], [0,1,0,1], [1,1,0,0] ],
 		[ [1,0,1,0], [0,0,0,0], [0,0,0,0], [1,0,1,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
 		[ [1,0,1,0], [0,0,0,0], [0,0,0,0], [1,0,1,0], [0,0,0,0], [0,3,3,0,3], [3,3,0,0,3], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
 		[ [0,0,1,0], [0,1,0,0], [0,1,0,0], [1,0,0,0], [0,0,0,0], [0,0,3,0,3], [0,0,0,0,3], [0,1,0,1], [0,1,0,1], [1,0,0,0] ],
@@ -211,7 +211,7 @@ function onframe(time) {
 	
 	// Jumping
 	if(keys.jump && player.z<=0) {
-		player.zspeed = 15;
+		player.zspeed = 12;
 	}
 	if(!keys.jump && player.z<=0) {
 		player.zspeed = 0;
@@ -290,13 +290,14 @@ function drawRay(r) {
 
 const maxdepth = 10;
 const floatth = 0.001// Float threshold
-function ray(ox,oy,ang) {
-	if(ang > Math.PI)
-		ang -= 2*Math.PI;
-	if(ang < -Math.PI)
-		ang += 2*Math.PI;
-	var cosa = Math.cos(ang);
-	var sina = Math.sin(ang);
+function ray(ox,oy,ang,ang2) {
+	var angsum = ang+ang2;
+	if(angsum > Math.PI)
+		angsum -= 2*Math.PI;
+	if(angsum < -Math.PI)
+		angsum += 2*Math.PI;
+	var cosa = Math.cos(angsum);
+	var sina = Math.sin(angsum);
 	// Horizontal
 	var depth = 0;
 	var hx,hy;
@@ -304,20 +305,20 @@ function ray(ox,oy,ang) {
 	var dirh, dirv;
 	var thid = 0, tvid = 0;
 	var txh = 0,txv = 0; // for textureX
-	if(ang>floatth && ang<Math.PI-floatth) {
+	if(angsum>floatth && angsum<Math.PI-floatth) {
 		hy = Math.ceil(oy);
 		hx = ox + (hy-oy)*cosa/sina;
 		dy = 1;
 		dx = cosa/sina;
 	}
-	else if(ang<-floatth && ang>-Math.PI+floatth) {
+	else if(angsum<-floatth && angsum>-Math.PI+floatth) {
 		hy = Math.floor(oy);
 		hx = ox + (hy-oy)*cosa/sina;
 		dy = -1;
 		dx = -cosa/sina;
 	}
 	else {
-		hx = ox + ((ang<1&&ang>-1) ? maxdepth : -maxdepth);
+		hx = ox + ((angsum<1&&angsum>-1) ? maxdepth : -maxdepth);
 		hy = oy;
 		depth = maxdepth;
 	}
@@ -348,20 +349,20 @@ function ray(ox,oy,ang) {
 	// Vertical
 	depth = 0;
 	var vx,vy;
-	if(ang<Math.PI/2-floatth && ang>-Math.PI/2+floatth) {
+	if(angsum<Math.PI/2-floatth && angsum>-Math.PI/2+floatth) {
 		vx = Math.ceil(ox);
 		vy = oy + (vx-ox)*sina/cosa;
 		dx = 1;
 		dy = sina/cosa;
 	}
-	else if(ang>Math.PI/2+floatth || ang<-Math.PI/2-floatth) {
+	else if(angsum>Math.PI/2+floatth || angsum<-Math.PI/2-floatth) {
 		vx = Math.floor(ox);
 		vy = oy + (vx-ox)*sina/cosa;
 		dx = -1;
 		dy = -sina/cosa;
 	}
 	else {
-		vy = oy + (ang>0 ? maxdepth : -maxdepth);
+		vy = oy + (angsum>0 ? maxdepth : -maxdepth);
 		vx = ox;
 		depth = maxdepth;
 	}
@@ -401,12 +402,15 @@ function ray(ox,oy,ang) {
 		x: x,
 		y: y,
 		d: dist,
-		// cosd: dist*Math.sin(ang-player.rot),
-		cosd: dist*Math.cos(ang-player.rot),
+		// sind: dist*Math.sin(ang2),
+		cosd: dist*Math.cos(ang2),
 		color: h ? [0,0,255,255] : [0,0,185,255],
 		textureX: (h ? txh : txv),
 		textureID: (h ? thid : tvid),
 		dir: (h ? dirh : dirv),
+		shade: dist>2?4/(dist+2):1,
+		ang: ang,
+		ang2: ang2
 	};
 }
 
@@ -427,7 +431,7 @@ function drawframe() {
 	ctx.lineWidth = 1;
 	for(var i=0;i<canvas.width;i++) {
 		var a = aov/2 - aov*i/canvas.width;
-		var r = ray(player.x,player.y,player.rot+a);
+		var r = ray(player.x,player.y,player.rot,a);
 		var h = 110/r.cosd;
 		var dz = player.z/r.cosd
 		var m = canvas.height/2-.5+player.shearing;
@@ -436,19 +440,29 @@ function drawframe() {
 		
 		var skyTexture = textures[5];
 		var skyLoops = 3;
-		var skyI = Math.floor((i*aov/canvas.width-player.rot+Math.PI)*skyTexture.width/Math.PI/2*skyLoops) % skyTexture.width;
+		var skyI = Math.floor(
+			(i*aov/canvas.width-player.rot+Math.PI)*skyTexture.width/Math.PI/2*skyLoops
+		) % skyTexture.width;
 		if(textureI==texture.width)
 			textureI--;
 		for(var j=0;j<canvas.height;j++) {
 			// Sky
 			if(j<=m-h+dz) {
 				for(var k=0;k<3;k++)
-					imdmatrix[j][i][k] = skyTexture.data[(Math.floor(.097*skyLoops*(j-player.shearing+player.maxshear)))%skyTexture.height][skyI][k];
+					imdmatrix[j][i][k] = skyTexture.data[
+						(
+							Math.floor(
+								.097*skyLoops*(j-player.shearing+player.maxshear)
+							)
+						)%skyTexture.height
+					][skyI][k];
 			}
 			// Wall
 			else if(j<m+h+dz)
 				for(var k=0;k<3;k++)
-					imdmatrix[j][i][k] = texture.data[Math.floor(texture.height*(j-m+h-dz)/h/2)][textureI][k]*(r.dir%2 ? 1 : .8)*(r.d>2?4/(r.d+2):1);
+					imdmatrix[j][i][k] = texture.data[
+						Math.floor(texture.height*(j-m+h-dz)/h/2)
+					][textureI][k]*(r.dir%2 ? 1 : .8)*r.shade;
 			// Floor
 			else {
 				var t = (h+dz)/(j-m);
@@ -460,8 +474,53 @@ function drawframe() {
 					logdiv.innerHTML = Math.floor(-y) + ' ' + Math.floor(x) + ' ' + e;
 				}
 				var floorTexture = textures[floorID ? floorID : 2];
+				var shade = r.d*t>2?4/(r.d*t+2):1;
 				for(var k=0;k<3;k++)
-					imdmatrix[j][i][k] = floorTexture.data[Math.floor((-y%1)*floorTexture.height)][Math.floor((x%1)*floorTexture.width)][k]*(r.d*t>2?4/(r.d*t+2):1);
+					imdmatrix[j][i][k] = floorTexture.data[Math.floor((-y%1)*floorTexture.height)][Math.floor((x%1)*floorTexture.width)][k]*shade;
+			}
+			 
+		}
+		// Sprites
+		var visibleSprites = []
+		for(var s=0;s<sprites.length;s++) {
+			var sprite = sprites[s];
+			var diffX = sprite.x - r.ox;
+			var diffY = sprite.y - r.oy;
+			var cosa = Math.cos(r.ang);
+			var sina = Math.sin(r.ang);
+			sprite.cosd = diffX*cosa + diffY*sina;
+			if(sprite.cosd>r.cosd)
+				continue;
+			sprite.sind =-diffX*sina + diffY*cosa;
+			sprite.raycollision = Math.tan(r.ang2)*sprite.cosd;
+			sprite.rayd = (sprite.raycollision-sprite.sind)/sprite.width + .5;
+			if(sprite.rayd<0 || sprite.rayd>1)
+				continue;
+			visibleSprites.push(sprite);
+		}
+		visibleSprites.sort( (a,b) => a.cosd<b.cosd ? 1 : -1 );
+		for(var s=0;s<visibleSprites.length;s++) {
+			var sprite = visibleSprites[s];
+			var texture = textures[sprite.textureID];
+			var textureI = Math.floor(sprite.rayd*texture.width);
+			if(textureI<0 || textureI>=texture.width)
+				continue;
+			var h = 50/sprite.cosd;
+			var dz = (player.z-sprite.z)/sprite.cosd;
+			var sz = 0;
+			var shade = sprite.cosd>2?4/(sprite.cosd+2):1;
+			for(var j=0;j<canvas.height;j++) {
+				if(j>m-h+dz+sz && j<m+h+dz+sz) {
+					var pixel = [...texture.data[
+						Math.floor(texture.height*(j-m+h-dz-sz)/h/2)
+					][textureI]];
+					for(var k=0;k<3;k++)
+						pixel[k] = pixel[k]*shade;
+					imdmatrix[j][i] = alphaComp(
+						imdmatrix[j][i],
+						pixel
+					);
+				}
 			}
 		}
 	}
@@ -473,7 +532,7 @@ function drawframe() {
 	ctx.putImageData(imdata,0,0);
 }
 // Textures
-var textureDirs = ['','tile1.png','tile2.png','tile3.png','tile4.png','skytexture.png'];
+var textureDirs = ['','tile1.png','tile2.png','tile3.png','tile4.png','skytexture.png','tile5.png','sprite1.png'];
 var textures = Array(textureDirs.length);
 
 function loadTexture(id) {
@@ -507,6 +566,33 @@ function loadTexture(id) {
 				id: this.id
 			});
 		};
+	});
+}
+
+function alphaComp(color1, color2) {
+	if(color2[3] == 255)
+		return [...color2]
+	if(color2[3] == 0)
+		return [...color1]
+	var finalcolor = Array[4];
+	finalcolor[3] = color1[3] + color2[3]*(1-color1[3]/255);
+	finalcolor[3] = Math.round(finalcolor[3]);
+	for(var i=0;i<3;i++) {
+		finalcolor[i] = color1[i]*color1[3] + color2[3]*(1-color1[3]/255);
+		finalcolor[i] = Math.round(finalcolor[i]/finalcolor[3]);
+	}
+
+}
+
+sprites = [];
+function newSprite(textureID,width,height,x,y,z) {
+	sprites.push({
+		textureID: textureID,
+		width: width,
+		height: height,
+		x: x,
+		y: y,
+		z: z
 	});
 }
 
@@ -554,6 +640,10 @@ async function start() {
 		height: 1,
 		id: 0
 	}
+	newSprite(7,.5,.5,2.,-8.,-60);
+	newSprite(7,.5,.5,4.,-8.,-60);
+	newSprite(7,.5,.5,6.,-8.,-60);
+	newSprite(7,.5,.5,8.,-8.,-60);
 	for(var i=1;i<textures.length;i++)
 		textures[i] = await loadTexture(i);
 	window.requestAnimationFrame(onframe);
