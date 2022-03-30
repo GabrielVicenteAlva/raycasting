@@ -221,7 +221,6 @@ function onframe(time) {
 		player.zspeed -= 1;
 		player.z += player.zspeed;
 	}
-	
 	if(aux)
 		auxframe();
 	window.requestAnimationFrame(onframe);
@@ -271,7 +270,7 @@ function auxframe() {
 	
 	for(var a=-aov/2;a<aov/2+.0001;a+=Math.PI/3/canvas.width) {
 		var r = ray(player.x,player.y,player.rot+a);
-		drawRay(r);
+		auxDrawRay(r);
 	}
 	
 	auxctx.beginPath();
@@ -279,7 +278,7 @@ function auxframe() {
 	auxctx.arc(x,y,3,0,2*Math.PI);
 	auxctx.fill();
 }
-function drawRay(r) {
+function auxDrawRay(r) {
 	auxctx.strokeStyle = "#00FF00";
 	auxctx.beginPath();
 	auxctx.lineWidth = 1;
@@ -290,7 +289,7 @@ function drawRay(r) {
 
 const maxdepth = 10;
 const floatth = 0.001// Float threshold
-function ray(ox,oy,ang,ang2) {
+function ray(ox,oy,ang,ang2,cosd=0) {
 	var angsum = ang+ang2;
 	if(angsum > Math.PI)
 		angsum -= 2*Math.PI;
@@ -304,7 +303,7 @@ function ray(ox,oy,ang,ang2) {
 	var dx,dy;
 	var dirh, dirv;
 	var thid = 0, tvid = 0;
-	var txh = 0,txv = 0; // for textureX
+	var txh = 0,txv = 0; // for texture.x
 	if(angsum>floatth && angsum<Math.PI-floatth) {
 		hy = Math.ceil(oy);
 		hx = ox + (hy-oy)*cosa/sina;
@@ -395,23 +394,137 @@ function ray(ox,oy,ang,ang2) {
 	var h = (Math.abs(lhx-lvx)<.01) ? Math.abs(hy-oy)<Math.abs(vy-oy) : lhx<lvx;
 	var x = h ? hx : vx;
 	var y = h ? hy : vy;
-	var dist = Math.sqrt(Math.pow(x-player.x,2)+Math.pow(y-player.y,2));
+	var dist = Math.sqrt(Math.pow(x-ox,2)+Math.pow(y-oy,2));
+	cosd += dist*Math.cos(ang2);
 	return {
 		ox: ox,
 		oy: oy,
 		x: x,
 		y: y,
-		d: dist,
+		// d: dist),
 		// sind: dist*Math.sin(ang2),
-		cosd: dist*Math.cos(ang2),
-		color: h ? [0,0,255,255] : [0,0,185,255],
-		textureX: (h ? txh : txv),
-		textureID: (h ? thid : tvid),
+		cosd: cosd,
+		texture: {
+			x: (h ? txh : txv),
+			id: (h ? thid : tvid),
+			h: 110/cosd, // Half height on screen
+			dz: player.z/cosd // Offset from player Z
+		},
 		dir: (h ? dirh : dirv),
-		shade: dist>2?4/(dist+2):1,
+		shade: cosd>2?4/(cosd+2):1,
 		ang: ang,
 		ang2: ang2
 	};
+}
+
+var screenCenter;
+function drawRay(i, r, l1=0, l2=canvas.height) {
+	l1 = Math.ceil(l1);
+	var h = r.texture.h;
+	var dz = r.texture.dz;
+	var m = screenCenter;
+	var texture = textures[r.texture.id];
+	var textureI = Math.floor(texture.width*r.texture.x);
+	
+	var skyTexture = textures[5];
+	var skyLoops = 3;
+	var skyI = Math.floor(
+		(i*aov/canvas.width-player.rot+Math.PI)*skyTexture.width/Math.PI/2*skyLoops
+	) % skyTexture.width;
+	if(textureI==texture.width)
+		textureI--;
+	for(var j=l1;j<l2;j++) {
+		// Sky
+		if(j<=m-h+dz) {
+			for(var k=0;k<3;k++)
+				imdmatrix[j][i][k] = skyTexture.data[
+					(
+						Math.floor(
+							.097*skyLoops*(j-player.shearing+player.maxshear)
+						)
+					)%skyTexture.height
+				][skyI][k];
+		}
+		// Wall
+		else if(j<m+h+dz)
+			for(var k=0;k<3;k++)
+				alphaComp(
+					{
+						m: imdmatrix,
+						j: j,
+						i: i
+					},
+					{
+						m: texture.data,
+						j: Math.floor(texture.height*(j-m+h-dz)/h/2),
+						i: textureI
+					},
+					(r.dir%2 ? 1 : .8)*r.shade
+				);
+		// Floor
+		else {
+			var t = (h+dz)/(j-m);
+			var x = player.x*(1-t) + r.x*t;
+			var y = player.y*(1-t) + r.y*t;
+			try {
+				var floorID = map.data[Math.floor(-y)][Math.floor(x)][4];
+			} catch(e) {
+				logdiv.innerHTML = Math.floor(-y) + ' ' + Math.floor(x) + ' ' + e;
+				continue;
+			}
+			var floorTexture = textures[floorID ? floorID : 2];
+			var shade = r.cosd*t>2?4/(r.cosd*t+2):1;
+			for(var k=0;k<3;k++)
+				imdmatrix[j][i][k] = floorTexture.data[Math.floor((-y%1)*floorTexture.height)][Math.floor((x%1)*floorTexture.width)][k]*shade;
+		}
+		 
+	}
+	// Sprites
+	var visibleSprites = []
+	for(var s=0;s<sprites.length;s++) {
+		var sprite = sprites[s];
+		var diffX = sprite.x - player.x;
+		var diffY = sprite.y - player.y;
+		var cosa = Math.cos(r.ang);
+		var sina = Math.sin(r.ang);
+		sprite.cosd = diffX*cosa + diffY*sina;
+		if(sprite.cosd>r.cosd)
+			continue;
+		sprite.sind =-diffX*sina + diffY*cosa;
+		sprite.raycollision = Math.tan(r.ang2)*sprite.cosd;
+		sprite.rayd = (sprite.raycollision-sprite.sind)/sprite.width + .5;
+		if(sprite.rayd<0 || sprite.rayd>1)
+			continue;
+		visibleSprites.push(sprite);
+	}
+	visibleSprites.sort( (a,b) => a.cosd<b.cosd ? 1 : -1 );
+	for(var s=0;s<visibleSprites.length;s++) {
+		var sprite = visibleSprites[s];
+		var texture = textures[sprite.textureID];
+		var textureI = Math.floor(sprite.rayd*texture.width);
+		if(textureI<0 || textureI>=texture.width)
+			continue;
+		var h = 55/sprite.cosd;
+		var dz = (player.z-sprite.z)/sprite.cosd;
+		var shade = sprite.cosd>2?4/(sprite.cosd+2):1;
+		for(var j=l1;j<l2;j++) {
+			if(j>m-h+dz && j<m+h+dz) {
+				alphaComp(
+					{
+						m: imdmatrix,
+						j: j,
+						i: i
+					},
+					{
+						m: texture.data,
+						j: Math.floor(texture.height*(j-m+h-dz)/h/2),
+						i: textureI
+					},
+					shade
+				);
+			}
+		}
+	}
 }
 
 var imdata = ctx.createImageData(canvas.width,canvas.height);
@@ -429,100 +542,18 @@ function drawframe() {
 			imdmatrix[i][j] = [135,206,235,255];
 	*/
 	ctx.lineWidth = 1;
+	screenCenter = canvas.height/2-.5+player.shearing;
 	for(var i=0;i<canvas.width;i++) {
 		var a = aov/2 - aov*i/canvas.width;
 		var r = ray(player.x,player.y,player.rot,a);
-		var h = 110/r.cosd;
-		var dz = player.z/r.cosd
-		var m = canvas.height/2-.5+player.shearing;
-		var texture = textures[r.textureID];
-		var textureI = Math.floor(texture.width*r.textureX);
-		
-		var skyTexture = textures[5];
-		var skyLoops = 3;
-		var skyI = Math.floor(
-			(i*aov/canvas.width-player.rot+Math.PI)*skyTexture.width/Math.PI/2*skyLoops
-		) % skyTexture.width;
-		if(textureI==texture.width)
-			textureI--;
-		for(var j=0;j<canvas.height;j++) {
-			// Sky
-			if(j<=m-h+dz) {
-				for(var k=0;k<3;k++)
-					imdmatrix[j][i][k] = skyTexture.data[
-						(
-							Math.floor(
-								.097*skyLoops*(j-player.shearing+player.maxshear)
-							)
-						)%skyTexture.height
-					][skyI][k];
-			}
-			// Wall
-			else if(j<m+h+dz)
-				for(var k=0;k<3;k++)
-					imdmatrix[j][i][k] = texture.data[
-						Math.floor(texture.height*(j-m+h-dz)/h/2)
-					][textureI][k]*(r.dir%2 ? 1 : .8)*r.shade;
-			// Floor
-			else {
-				var t = (h+dz)/(j-m);
-				var x = r.ox*(1-t) + r.x*t;
-				var y = r.oy*(1-t) + r.y*t;
-				try {
-					var floorID = map.data[Math.floor(-y)][Math.floor(x)][4];
-				} catch(e) {
-					logdiv.innerHTML = Math.floor(-y) + ' ' + Math.floor(x) + ' ' + e;
-				}
-				var floorTexture = textures[floorID ? floorID : 2];
-				var shade = r.d*t>2?4/(r.d*t+2):1;
-				for(var k=0;k<3;k++)
-					imdmatrix[j][i][k] = floorTexture.data[Math.floor((-y%1)*floorTexture.height)][Math.floor((x%1)*floorTexture.width)][k]*shade;
-			}
-			 
+		if(textures[r.texture.id].transparent) {
+			var r2 = ray(
+				r.x + .001*Math.cos(player.rot+a),
+				r.y + .001*Math.sin(player.rot+a),
+				player.rot,a,r.cosd);
+			drawRay(i,r2);
 		}
-		// Sprites
-		var visibleSprites = []
-		for(var s=0;s<sprites.length;s++) {
-			var sprite = sprites[s];
-			var diffX = sprite.x - r.ox;
-			var diffY = sprite.y - r.oy;
-			var cosa = Math.cos(r.ang);
-			var sina = Math.sin(r.ang);
-			sprite.cosd = diffX*cosa + diffY*sina;
-			if(sprite.cosd>r.cosd)
-				continue;
-			sprite.sind =-diffX*sina + diffY*cosa;
-			sprite.raycollision = Math.tan(r.ang2)*sprite.cosd;
-			sprite.rayd = (sprite.raycollision-sprite.sind)/sprite.width + .5;
-			if(sprite.rayd<0 || sprite.rayd>1)
-				continue;
-			visibleSprites.push(sprite);
-		}
-		visibleSprites.sort( (a,b) => a.cosd<b.cosd ? 1 : -1 );
-		for(var s=0;s<visibleSprites.length;s++) {
-			var sprite = visibleSprites[s];
-			var texture = textures[sprite.textureID];
-			var textureI = Math.floor(sprite.rayd*texture.width);
-			if(textureI<0 || textureI>=texture.width)
-				continue;
-			var h = 50/sprite.cosd;
-			var dz = (player.z-sprite.z)/sprite.cosd;
-			var sz = 0;
-			var shade = sprite.cosd>2?4/(sprite.cosd+2):1;
-			for(var j=0;j<canvas.height;j++) {
-				if(j>m-h+dz+sz && j<m+h+dz+sz) {
-					var pixel = [...texture.data[
-						Math.floor(texture.height*(j-m+h-dz-sz)/h/2)
-					][textureI]];
-					for(var k=0;k<3;k++)
-						pixel[k] = pixel[k]*shade;
-					imdmatrix[j][i] = alphaComp(
-						imdmatrix[j][i],
-						pixel
-					);
-				}
-			}
-		}
+		drawRay(i,r);
 	}
 	// Pass imdmatrix to the canvas
 	for(var i=0;i<canvas.height;i++)
@@ -531,6 +562,7 @@ function drawframe() {
 				imdata.data[4*(i*canvas.width+j)+k] = imdmatrix[i][j][k];
 	ctx.putImageData(imdata,0,0);
 }
+
 // Textures
 var textureDirs = ['','tile1.png','tile2.png','tile3.png','tile4.png','skytexture.png','tile5.png','sprite1.png'];
 var textures = Array(textureDirs.length);
@@ -563,25 +595,34 @@ function loadTexture(id) {
 				data: texture,
 				width: this.width,
 				height: this.height,
-				id: this.id
+				id: this.id,
+				transparent: false
 			});
 		};
 	});
 }
 
-function alphaComp(color1, color2) {
-	if(color2[3] == 255)
-		return [...color2]
-	if(color2[3] == 0)
-		return [...color1]
-	var finalcolor = Array[4];
-	finalcolor[3] = color1[3] + color2[3]*(1-color1[3]/255);
-	finalcolor[3] = Math.round(finalcolor[3]);
-	for(var i=0;i<3;i++) {
-		finalcolor[i] = color1[i]*color1[3] + color2[3]*(1-color1[3]/255);
-		finalcolor[i] = Math.round(finalcolor[i]/finalcolor[3]);
+function alphaComp(pxl1, pxl2, shade=1) {
+	if(pxl2.m[pxl2.j][pxl2.i][3] == 255) {
+		for(var k=0;k<3;k++)
+			pxl1.m[pxl1.j][pxl1.i][k] = pxl2.m[pxl2.j][pxl2.i][k] * shade;
+		pxl1.m[pxl1.j][pxl1.i][3] = 255;
+		return;
 	}
-
+	if(pxl2.m[pxl2.j][pxl2.i][3] == 0)
+		return;
+	var a0 = Math.round(
+		pxl1.m[pxl1.j][pxl1.i][3] + 
+		pxl2.m[pxl2.j][pxl2.i][3]*(1-pxl1.m[pxl1.j][pxl1.i][3]/255)
+	);
+	for(var k=0;k<3;i++) {
+		pxl1.m[pxl1.j][pxl1.i][k] = Math.round(
+			(
+				pxl1.m[pxl1.j][pxl1.i][k]*pxl1.m[pxl1.j][pxl1.i][3] + 
+				pxl2.m[pxl2.j][pxl2.i][k]*shade*(1-pxl1.m[pxl1.j][pxl1.i][3]/255)
+			)/a0
+		);
+	}
 }
 
 sprites = [];
@@ -644,8 +685,10 @@ async function start() {
 	newSprite(7,.5,.5,4.,-8.,-60);
 	newSprite(7,.5,.5,6.,-8.,-60);
 	newSprite(7,.5,.5,8.,-8.,-60);
+	newSprite(7,.5,.5,5.5,-.5,-60);
 	for(var i=1;i<textures.length;i++)
 		textures[i] = await loadTexture(i);
+	textures[6].transparent = true;
 	window.requestAnimationFrame(onframe);
 }
 start();
