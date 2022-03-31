@@ -124,6 +124,7 @@ const wallcollision = 0.05;
 
 // Frame
 var lastTime = 0;
+var walkanim = 0;
 function onframe(time) {
 	var dt = (time - lastTime)/1000*60;
 	lastTime = time;
@@ -220,9 +221,14 @@ function onframe(time) {
 		player.zspeed -= 1;
 		player.z += player.zspeed;
 	}
+	if(!keys.jump && (keys.movU || keys.movD || keys.movL || keys.movR)) {
+		walkanim++;
+	} else {
+		walkanim = 0;
+	}
 	sprites[0].x = player.x;
 	sprites[0].y = player.y;
-	sprites[0].z = player.z-30;
+	sprites[0].z = player.z-30 - 10*Math.floor(Math.sin(walkanim*Math.PI/6));
 	drawframe();
 	if(aux)
 		auxframe();
@@ -294,6 +300,10 @@ function auxDrawRay(r) {
 const maxdepth = 20;
 const floatth = 0.001// Float threshold
 function ray(ox,oy,ang,ang2,pastcosd=0) {
+	if(ang > Math.PI)
+		ang -= 2*Math.PI;
+	if(ang < -Math.PI)
+		ang += 2*Math.PI;
 	var angsum = ang+ang2;
 	if(angsum > Math.PI)
 		angsum -= 2*Math.PI;
