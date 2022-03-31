@@ -109,7 +109,7 @@ var map = {
 		[ [0,1,1,0], [0,1,0,1], [0,1,0,1], [6,1,0,0], [0,1,6,1], [0,1,0,1], [0,1,0,1], [0,1,0,1], [0,1,0,1], [1,1,0,0] ],
 		[ [1,0,1,0], [0,0,0,0], [0,0,0,0], [1,0,1,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
 		[ [1,0,1,0], [0,0,0,0], [0,0,0,0], [1,0,1,0], [0,0,0,0], [0,3,3,0,3], [3,3,0,0,3], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
-		[ [0,0,1,0], [0,1,0,0], [0,1,0,0], [1,0,0,0], [0,0,0,0], [0,0,3,0,3], [0,0,0,0,3], [0,1,0,1], [0,1,0,1], [1,0,0,0] ],
+		[ [0,0,1,0], [0,1,0,0], [0,9,0,0], [1,0,0,0], [0,0,0,0], [0,0,3,0,3], [0,0,0,0,3], [0,1,0,1], [0,1,0,1], [9,0,0,0] ],
 		[ [0,0,1,1], [0,0,0,0], [0,0,0,0], [1,0,0,1], [0,0,0,0], [0,0,3,3,3], [3,0,0,3,3], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
 		[ [0,0,0,0], [0,0,1,0], [1,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0], [1,0,1,0] ],
 		[ [0,1,1,0], [0,0,0,0], [0,0,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0], [1,0,0,0] ],
@@ -207,7 +207,6 @@ function onframe(time) {
 		player.shearing = player.maxshear;
 	if(player.shearing < -player.maxshear)
 		player.shearing = -player.maxshear;
-	drawframe();
 	
 	// Jumping
 	if(keys.jump && player.z<=0) {
@@ -221,6 +220,10 @@ function onframe(time) {
 		player.zspeed -= 1;
 		player.z += player.zspeed;
 	}
+	sprites[0].x = player.x;
+	sprites[0].y = player.y;
+	sprites[0].z = player.z-30;
+	drawframe();
 	if(aux)
 		auxframe();
 	window.requestAnimationFrame(onframe);
@@ -234,6 +237,7 @@ function auxframe() {
 	// Drawing map
 	auxctx.strokeStyle = "#000000";
 	auxctx.lineWidth = 2;
+
 	auxctx.beginPath();
 	for(var j=0;j<map.height;j++)
 		for(var i=0;i<map.width;i++) {
@@ -289,7 +293,7 @@ function auxDrawRay(r) {
 
 const maxdepth = 10;
 const floatth = 0.001// Float threshold
-function ray(ox,oy,ang,ang2,cosd=0) {
+function ray(ox,oy,ang,ang2,pastcosd=0) {
 	var angsum = ang+ang2;
 	if(angsum > Math.PI)
 		angsum -= 2*Math.PI;
@@ -395,7 +399,7 @@ function ray(ox,oy,ang,ang2,cosd=0) {
 	var x = h ? hx : vx;
 	var y = h ? hy : vy;
 	var dist = Math.sqrt(Math.pow(x-ox,2)+Math.pow(y-oy,2));
-	cosd += dist*Math.cos(ang2);
+	cosd = pastcosd + dist*Math.cos(ang2);
 	return {
 		ox: ox,
 		oy: oy,
@@ -404,6 +408,7 @@ function ray(ox,oy,ang,ang2,cosd=0) {
 		// d: dist),
 		// sind: dist*Math.sin(ang2),
 		cosd: cosd,
+		pastcosd: pastcosd,
 		texture: {
 			x: (h ? txh : txv),
 			id: (h ? thid : tvid),
@@ -416,10 +421,12 @@ function ray(ox,oy,ang,ang2,cosd=0) {
 		ang2: ang2
 	};
 }
-
+var qq=0
 var screenCenter;
-function drawRay(i, r, l1=0, l2=canvas.height) {
-	l1 = Math.ceil(l1);
+function drawRay(i, r, l1=0, l2=canvas.height-1) {
+	if(l1<0) l1 = 0;
+	else l1 = Math.ceil(l1);
+	if(l2>canvas.height-1) l2 = canvas.height-1;
 	var h = r.texture.h;
 	var dz = r.texture.dz;
 	var m = screenCenter;
@@ -464,16 +471,21 @@ function drawRay(i, r, l1=0, l2=canvas.height) {
 		// Floor
 		else {
 			var t = (h+dz)/(j-m);
-			var x = player.x*(1-t) + r.x*t;
-			var y = player.y*(1-t) + r.y*t;
+			var shade = r.cosd*t>2?4/(r.cosd*t+2):1;
+			t -= r.pastcosd/r.cosd;
+			t /= 1-r.pastcosd/r.cosd;
+			var x = r.ox*(1-t) + r.x*t;
+			var y = r.oy*(1-t) + r.y*t;
 			try {
 				var floorID = map.data[Math.floor(-y)][Math.floor(x)][4];
 			} catch(e) {
-				logdiv.innerHTML = Math.floor(-y) + ' ' + Math.floor(x) + ' ' + e;
+				logdiv.innerHTML = j + ' ' + i + '<br>' +
+					Math.floor(-y) + ' ' + Math.floor(x) + '<br>' +
+					typeof(map.data[Math.floor(-y)][Math.floor(x)]) + '<br>'+ 
+					e;
 				continue;
 			}
 			var floorTexture = textures[floorID ? floorID : 2];
-			var shade = r.cosd*t>2?4/(r.cosd*t+2):1;
 			for(var k=0;k<3;k++)
 				imdmatrix[j][i][k] = floorTexture.data[Math.floor((-y%1)*floorTexture.height)][Math.floor((x%1)*floorTexture.width)][k]*shade;
 		}
@@ -483,16 +495,19 @@ function drawRay(i, r, l1=0, l2=canvas.height) {
 	var visibleSprites = []
 	for(var s=0;s<sprites.length;s++) {
 		var sprite = sprites[s];
-		var diffX = sprite.x - player.x;
-		var diffY = sprite.y - player.y;
+		var diffX = sprite.x - r.ox;
+		var diffY = sprite.y - r.oy;
 		var cosa = Math.cos(r.ang);
 		var sina = Math.sin(r.ang);
-		sprite.cosd = diffX*cosa + diffY*sina;
+		var cosd = diffX*cosa + diffY*sina;
+		if(cosd<.2)
+			continue;
+		sprite.cosd = cosd + r.pastcosd;
 		if(sprite.cosd>r.cosd)
 			continue;
 		sprite.sind =-diffX*sina + diffY*cosa;
-		sprite.raycollision = Math.tan(r.ang2)*sprite.cosd;
-		sprite.rayd = (sprite.raycollision-sprite.sind)/sprite.width + .5;
+		sprite.raycollision = Math.tan(r.ang2)*cosd;
+		sprite.rayd = -(sprite.raycollision-sprite.sind)/sprite.width + .5;
 		if(sprite.rayd<0 || sprite.rayd>1)
 			continue;
 		visibleSprites.push(sprite);
@@ -504,7 +519,7 @@ function drawRay(i, r, l1=0, l2=canvas.height) {
 		var textureI = Math.floor(sprite.rayd*texture.width);
 		if(textureI<0 || textureI>=texture.width)
 			continue;
-		var h = 55/sprite.cosd;
+		var h = 110*sprite.height/sprite.cosd;
 		var dz = (player.z-sprite.z)/sprite.cosd;
 		var shade = sprite.cosd>2?4/(sprite.cosd+2):1;
 		for(var j=l1;j<l2;j++) {
@@ -548,10 +563,17 @@ function drawframe() {
 		var r = ray(player.x,player.y,player.rot,a);
 		if(textures[r.texture.id].transparent) {
 			var r2 = ray(
-				r.x + .001*Math.cos(player.rot+a),
-				r.y + .001*Math.sin(player.rot+a),
+				r.x + 1e-5*Math.cos(player.rot+a),
+				r.y + 1e-5*Math.sin(player.rot+a),
 				player.rot,a,r.cosd);
-			drawRay(i,r2);
+			drawRay(i,r2,screenCenter-r.texture.h+r.texture.dz,screenCenter+r.texture.h+r.texture.dz);
+		} else if (textures[r.texture.id].mirror) {
+			var reflect = r.dir%2 ? r=>-r : r=>(Math.PI-r);
+			var r2 = ray(
+				r.x + 1e-5*Math.cos(reflect(player.rot+a)),
+				r.y + 1e-5*Math.sin(reflect(player.rot+a)),
+				reflect(player.rot),-a,r.cosd);
+			drawRay(i,r2,screenCenter-r.texture.h+r.texture.dz,screenCenter+r.texture.h+r.texture.dz);
 		}
 		drawRay(i,r);
 	}
@@ -564,7 +586,7 @@ function drawframe() {
 }
 
 // Textures
-var textureDirs = ['','tile1.png','tile2.png','tile3.png','tile4.png','skytexture.png','tile5.png','sprite1.png'];
+var textureDirs = ['','tile1.png','tile2.png','tile3.png','tile4.png','skytexture.png','tile5.png','sprite1.png','sprite2.png','tile6.png','sprite3.png'];
 var textures = Array(textureDirs.length);
 
 function loadTexture(id) {
@@ -611,18 +633,14 @@ function alphaComp(pxl1, pxl2, shade=1) {
 	}
 	if(pxl2.m[pxl2.j][pxl2.i][3] == 0)
 		return;
-	var a0 = Math.round(
-		pxl1.m[pxl1.j][pxl1.i][3] + 
-		pxl2.m[pxl2.j][pxl2.i][3]*(1-pxl1.m[pxl1.j][pxl1.i][3]/255)
-	);
-	for(var k=0;k<3;i++) {
-		pxl1.m[pxl1.j][pxl1.i][k] = Math.round(
-			(
-				pxl1.m[pxl1.j][pxl1.i][k]*pxl1.m[pxl1.j][pxl1.i][3] + 
-				pxl2.m[pxl2.j][pxl2.i][k]*shade*(1-pxl1.m[pxl1.j][pxl1.i][3]/255)
-			)/a0
-		);
-	}
+	var a0 = 
+		pxl1.m[pxl1.j][pxl1.i][3]*(1-pxl2.m[pxl2.j][pxl2.i][3]/255) +
+		pxl2.m[pxl2.j][pxl2.i][3];
+	for(var k=0;k<3;k++)
+		pxl1.m[pxl1.j][pxl1.i][k] = (
+			pxl1.m[pxl1.j][pxl1.i][k]*pxl1.m[pxl1.j][pxl1.i][3]*(1-pxl2.m[pxl2.j][pxl2.i][3]/255) + 
+			pxl2.m[pxl2.j][pxl2.i][k]*shade*pxl2.m[pxl2.j][pxl2.i][3]
+		)/a0;
 }
 
 sprites = [];
@@ -681,14 +699,17 @@ async function start() {
 		height: 1,
 		id: 0
 	}
+	newSprite(10,.75,.75,0,0,0); // Player
 	newSprite(7,.5,.5,2.,-8.,-60);
 	newSprite(7,.5,.5,4.,-8.,-60);
 	newSprite(7,.5,.5,6.,-8.,-60);
 	newSprite(7,.5,.5,8.,-8.,-60);
 	newSprite(7,.5,.5,5.5,-.5,-60);
+	newSprite(8,.75,.75,6,-3.5,-30);
 	for(var i=1;i<textures.length;i++)
 		textures[i] = await loadTexture(i);
 	textures[6].transparent = true;
+	textures[9].mirror = true;
 	window.requestAnimationFrame(onframe);
 }
 start();
