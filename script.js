@@ -228,7 +228,7 @@ function onframe(time) {
 	}
 	sprites[0].x = player.x;
 	sprites[0].y = player.y;
-	sprites[0].z = player.z-30 - 10*Math.floor(Math.sin(walkanim*Math.PI/6));
+	sprites[0].z = player.z-30 + 10*Math.ceil(Math.sin(walkanim*Math.PI/6));
 	drawframe();
 	if(aux)
 		auxframe();
@@ -684,6 +684,20 @@ const textureTypes = {
 }
 
 function alphaComp(pxl1, pxl2, shade=1) {
+	if(
+		pxl1.m[pxl1.j]==undefined ||
+		pxl1.m[pxl1.j][pxl1.i]==undefined
+	) {
+		console.log(pxl2);
+		return;
+	}
+	if(
+		pxl2.m[pxl2.j]==undefined ||
+		pxl2.m[pxl2.j][pxl2.i]==undefined
+	) {
+		console.log(pxl2);
+		return;
+	}
 	if(pxl2.m[pxl2.j][pxl2.i][3] == 255) {
 		for(var k=0;k<3;k++)
 			pxl1.m[pxl1.j][pxl1.i][k] = pxl2.m[pxl2.j][pxl2.i][k] * shade;
