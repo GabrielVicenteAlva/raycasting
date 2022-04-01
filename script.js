@@ -1,4 +1,5 @@
 var aux = false;
+var cursor = true;
 
 var canvas = document.getElementById('gamecanvas');
 canvas.width = 240;
@@ -119,7 +120,7 @@ var map = {
 	]
 }
 map.height = map.init.length;
-map.width = map.init[0].length;
+map.width = map.init[0].length; 
 const wallcollision = 0.05;
 
 // Frame
@@ -131,65 +132,216 @@ function onframe(time) {
 	logdiv.innerHTML = '';
 	player.cosr = Math.cos(player.rot);
 	player.sinr = Math.sin(player.rot);
-	player.i = Math.floor(player.x);
-	player.j = Math.floor(-player.y);
 	player.cell = map.data[player.j][player.i];
 	
 	if(keys.movU) {
+		// Move
 		player.x += player.speed*player.cosr *dt;
-		if(player.cell[0] && player.x-player.i>1-wallcollision)
+		// Check for collision or portal
+		if(player.cell[0]==11)
+			if(player.x-player.i>1)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[0]==12)
+			if(player.x-player.i>1)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[0] && player.x-player.i>1-wallcollision)
 			player.x = player.i+1-wallcollision;
-		if(player.cell[2] && player.x-player.i<wallcollision)
+		
+		if(player.cell[2]==11)
+			if(player.x-player.i<0)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[2]==12)
+			if(player.x-player.i<0)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[2] && player.x-player.i<wallcollision)
 			player.x = player.i+wallcollision;
+	
 		player.i = Math.floor(player.x);
 		player.cell = map.data[player.j][player.i];
+		player.sinr = Math.sin(player.rot);
 		player.y += player.speed*player.sinr *dt;
-		if(player.cell[1] && player.y+player.j>-wallcollision)
+		
+		if(player.cell[1]==11)
+			if(player.y+player.j>0)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[1]==12)
+			if(player.y+player.j>0)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[1] && player.y+player.j>-wallcollision)
 			player.y = -player.j-wallcollision;
-		if(player.cell[3] && player.y+player.j<-1+wallcollision)
+
+		if(player.cell[3]==11)
+			if(player.y+player.j<-1)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[3]==12)
+			if(player.y+player.j<-1)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[3] && player.y+player.j<-1+wallcollision)
 			player.y = -player.j-1+wallcollision;
 	}
 	if(keys.movD) {
 		player.x -= player.speed*player.cosr *dt;
-		if(player.cell[0] && player.x-player.i>1-wallcollision)
+		
+		if(player.cell[0]==11)
+			if(player.x-player.i>1)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[0]==12)
+			if(player.x-player.i>1)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[0] && player.x-player.i>1-wallcollision)
 			player.x = player.i+1-wallcollision;
-		if(player.cell[2] && player.x-player.i<wallcollision)
+		
+		if(player.cell[2]==11)
+			if(player.x-player.i<0)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[2]==12)
+			if(player.x-player.i<0)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[2] && player.x-player.i<wallcollision)
 			player.x = player.i+wallcollision;
+			
 		player.i = Math.floor(player.x);
 		player.cell = map.data[player.j][player.i];
+		player.sinr = Math.sin(player.rot);
 		player.y -= player.speed*player.sinr *dt;
-		if(player.cell[1] && player.y+player.j>-wallcollision)
+		
+		if(player.cell[1]==11)
+			if(player.y+player.j>0)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[1]==12)
+			if(player.y+player.j>0)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[1] && player.y+player.j>-wallcollision)
 			player.y = -player.j-wallcollision;
-		if(player.cell[3] && player.y+player.j<-1+wallcollision)
+
+		if(player.cell[3]==11)
+			if(player.y+player.j<-1)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[3]==12)
+			if(player.y+player.j<-1)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[3] && player.y+player.j<-1+wallcollision)
 			player.y = -player.j-1+wallcollision;
 	}
 	if(keys.movL) {
 		player.x -= player.speed*player.sinr *dt;
-		if(player.cell[0] && player.x-player.i>1-wallcollision)
+		
+		if(player.cell[0]==11)
+			if(player.x-player.i>1)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[0]==12)
+			if(player.x-player.i>1)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[0] && player.x-player.i>1-wallcollision)
 			player.x = player.i+1-wallcollision;
-		if(player.cell[2] && player.x-player.i<wallcollision)
+		
+		if(player.cell[2]==11)
+			if(player.x-player.i<0)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[2]==12)
+			if(player.x-player.i<0)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[2] && player.x-player.i<wallcollision)
 			player.x = player.i+wallcollision;
+		
 		player.i = Math.floor(player.x);
 		player.cell = map.data[player.j][player.i];
+		player.cosr = Math.cos(player.rot);
 		player.y += player.speed*player.cosr *dt;
-		if(player.cell[1] && player.y+player.j>-wallcollision)
+		
+		if(player.cell[1]==11)
+			if(player.y+player.j>0)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[1]==12)
+			if(player.y+player.j>0)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[1] && player.y+player.j>-wallcollision)
 			player.y = -player.j-wallcollision;
-		if(player.cell[3] && player.y+player.j<-1+wallcollision)
+
+		if(player.cell[3]==11)
+			if(player.y+player.j<-1)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[3]==12)
+			if(player.y+player.j<-1)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[3] && player.y+player.j<-1+wallcollision)
 			player.y = -player.j-1+wallcollision;
 	}
 	
 	if(keys.movR) {
 		player.x += player.speed*player.sinr *dt;
-		if(player.cell[0] && player.x-player.i>1-wallcollision)
+		
+		if(player.cell[0]==11)
+			if(player.x-player.i>1)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[0]==12)
+			if(player.x-player.i>1)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[0] && player.x-player.i>1-wallcollision)
 			player.x = player.i+1-wallcollision;
-		if(player.cell[2] && player.x-player.i<wallcollision)
+		
+		if(player.cell[2]==11)
+			if(player.x-player.i<0)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[2]==12)
+			if(player.x-player.i<0)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[2] && player.x-player.i<wallcollision)
 			player.x = player.i+wallcollision;
+			
 		player.i = Math.floor(player.x);
 		player.cell = map.data[player.j][player.i];
+		player.cosr = Math.cos(player.rot);
 		player.y -= player.speed*player.cosr *dt;
-		if(player.cell[1] && player.y+player.j>-wallcollision)
+		
+		if(player.cell[1]==11)
+			if(player.y+player.j>0)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[1]==12)
+			if(player.y+player.j>0)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[1] && player.y+player.j>-wallcollision)
 			player.y = -player.j-wallcollision;
-		if(player.cell[3] && player.y+player.j<-1+wallcollision)
+
+		if(player.cell[3]==11)
+			if(player.y+player.j<-1)
+				teleport(player, portal1.dir, portal2);
+			else;
+		else if (player.cell[3]==12)
+			if(player.y+player.j<-1)
+				teleport(player, portal2.dir, portal1);
+			else;
+		else if(player.cell[3] && player.y+player.j<-1+wallcollision)
 			player.y = -player.j-1+wallcollision;
 	}
 	if(keys.camL)
@@ -229,6 +381,54 @@ function onframe(time) {
 	sprites[0].x = player.x;
 	sprites[0].y = player.y;
 	sprites[0].z = player.z-30 + 10*Math.ceil(Math.sin(walkanim*Math.PI/6));
+	
+	player.i = Math.floor(player.x);
+	player.j = Math.floor(-player.y);
+	if(player.i==portal1.i && player.j==portal1.j) {
+		sprites[1].x = player.x;
+		sprites[1].y = player.y;
+		teleport(sprites[1],portal1.dir,portal2);
+		switch(portal2.dir) {
+		case 0:
+			sprites[1].x += 1;
+			break;
+		case 1:
+			sprites[1].y += 1;
+			break;
+		case 2:
+			sprites[1].x -= 1;
+			break;
+		case 3:
+			sprites[1].y -= 1;
+			break;
+		}
+		sprites[1].z = sprites[0].z;
+	} else if(player.i==portal2.i && player.j==portal2.j) {
+		sprites[1].x = player.x;
+		sprites[1].y = player.y;
+		teleport(sprites[1],portal2.dir,portal1);
+		switch(portal1.dir) {
+		case 0:
+			sprites[1].x += 1;
+			break;
+		case 1:
+			sprites[1].y += 1;
+			break;
+		case 2:
+			sprites[1].x -= 1;
+			break;
+		case 3:
+			sprites[1].y -= 1;
+			break;
+		}
+		sprites[1].z = sprites[0].z;
+		
+	} else {
+		sprites[1].x = -1;
+		sprites[1].y = 1;
+		sprites[1].z = 0;
+	}
+	
 	drawframe();
 	if(aux)
 		auxframe();
@@ -437,8 +637,51 @@ function ray(ox,oy,ang,ang2,pastcosd=0) {
 		}
 	};
 }
+// Portals
+var portal1 = {
+	dir: 0,
+	j: 1,
+	i: 0
+}
+var portal2 = {
+	dir: 2,
+	j: 1,
+	i: 3
+}
+function teleport(pos, dir, portal) {
+	pos.x -= Math.floor(pos.x);
+	pos.y -= Math.ceil(pos.y);
+	
+	switch(portal.dir - dir) {
+	case 0:
+		pos.x = 1 - pos.x;
+		pos.y =-1 - pos.y;
+		pos.rot = pos.rot>0 ? pos.rot-Math.PI : pos.rot+Math.PI;
+		break;
+	case 1:
+	case -3:
+		var tmpx = pos.x;
+		pos.x = 1 + pos.y;
+		pos.y = -tmpx;
+		pos.rot -= Math.PI/2;
+		if(pos.rot<= -Math.PI) pos.rot += 2*Math.PI;
+		break;
+	case 3:
+	case -1:
+		var tmpx = pos.x;
+		pos.x = -pos.y;
+		pos.y = -1 + tmpx;
+		pos.rot += Math.PI/2;
+		if(pos.rot> Math.PI) pos.rot -= 2*Math.PI;
+		break;
+	}
+	pos.x += portal.i;
+	pos.y -= portal.j;
+}
+
+// Drawing
 var screenCenter;
-function drawRay(i, r, l1=0, l2=canvas.height-1) {
+function drawRay(i, r, l1=0, l2=canvas.height-1, minSpriteDist = 0) {
 	if(l1<0) l1 = 0;
 	else l1 = Math.ceil(l1);
 	if(l2>canvas.height-1) l2 = canvas.height-1;
@@ -529,7 +772,7 @@ function drawRay(i, r, l1=0, l2=canvas.height-1) {
 		var cosa = Math.cos(r.ang);
 		var sina = Math.sin(r.ang);
 		var cosd = diffX*cosa + diffY*sina;
-		if(cosd<.2)
+		if(cosd<minSpriteDist)
 			continue;
 		sprite.cosd = cosd + r.pastcosd;
 		if(sprite.cosd>r.cosd)
@@ -596,6 +839,10 @@ function drawframe() {
 		// Continue until solid
 		var r2;
 		for(var n=1;n<maxReflections;n++) {
+			if(!r) {
+				console.log('No r');
+				break;
+			}
 			switch(textures[r.texture.id].type) {
 			case textureTypes.solid:
 				n = maxReflections;
@@ -615,6 +862,32 @@ function drawframe() {
 					reflect(r.ang),-r.ang2,r.cosd);
 				rays.unshift(r2);
 				break;
+			case textureTypes.portal1:
+				var newpos = {
+					x: r.x + 1e-5*Math.cos(r.ang+r.ang2),
+					y: r.y + 1e-5*Math.sin(r.ang+r.ang2),
+					rot: r.ang
+				}
+				teleport(newpos, portal1.dir, portal2);
+				r2 = ray(
+					newpos.x,
+					newpos.y,
+					newpos.rot,r.ang2,r.cosd);
+				rays.unshift(r2);
+				break;
+			case textureTypes.portal2:
+				var newpos = {
+					x: r.x + 1e-5*Math.cos(r.ang+r.ang2),
+					y: r.y + 1e-5*Math.sin(r.ang+r.ang2),
+					rot: r.ang
+				}
+				teleport(newpos, portal2.dir, portal1);
+				r2 = ray(
+					newpos.x,
+					newpos.y,
+					newpos.rot,r.ang2,r.cosd);
+				rays.unshift(r2);
+				break;
 			}
 			r = r2;
 		}
@@ -622,13 +895,23 @@ function drawframe() {
 		while(rays.length>1) {
 			r = rays[1];
 			r2 = rays.shift();
-			drawRay(i,r2,screenCenter-r.texture.h+r.texture.dz,screenCenter+r.texture.h+r.texture.dz);
+			drawRay(i,r2,screenCenter-r.texture.h+r.texture.dz,screenCenter+r.texture.h+r.texture.dz, textures[r.texture.id].type==textureTypes.mirror ? .06 : 0);
 		}
 		r = rays[0];
 		drawRay(i,r);
 		if(i==canvas.width/2)
 			centerRay = r;
 	}
+	if(cursor) {
+		const l = 5;
+		for(var j=canvas.height/2-l;j<canvas.height/2+l;j++)
+			for(var i=canvas.width/2-l;i<canvas.width/2+l;i++)
+				if(j==canvas.height/2-1 || j==canvas.height/2 ||
+					i==canvas.width/2-1 || i==canvas.width/2)
+						for(var k=0;k<3;k++)
+							imdmatrix[j][i][k] = 255 - imdmatrix[j][i][k];
+	}
+	
 	// Pass imdmatrix to the canvas
 	for(var i=0;i<canvas.height;i++)
 		for(var j=0;j<canvas.width;j++)
@@ -638,7 +921,7 @@ function drawframe() {
 }
 
 // Textures
-var textureDirs = ['','tile1.png','tile2.png','tile3.png','tile4.png','skytexture.png','tile5.png','sprite1.png','sprite2.png','tile6.png','sprite3.png'];
+var textureDirs = ['','tile1.png','tile2.png','tile3.png','tile4.png','skytexture.png','tile5.png','sprite1.png','sprite2.png','tile6.png','sprite3.png','portal1.png','portal2.png'];
 var textures = Array(textureDirs.length);
 
 function loadTexture(id) {
@@ -770,22 +1053,38 @@ function mouseDown(e) {
 		screenCenter-centerRay.texture.h+centerRay.texture.dz > canvas.height/2 ||
 		screenCenter+centerRay.texture.h+centerRay.texture.dz < canvas.height/2
 	) return;
-	if(e.which===2) {
-		// map.data[centerRay.cell.j][centerRay.cell.i][centerRay.dir] = 3;
-	} else if(e.which===1) {
+	if(e.which===1) {
+		if(centerRay.cell.j != portal2.j || centerRay.cell.i != portal2.i || centerRay.dir != portal2.dir) {
+			map.data[portal1.j][portal1.i][portal1.dir] = 
+				map.init[portal1.j][portal1.i][portal1.dir];
+			portal1.dir = centerRay.dir,
+			portal1.j = centerRay.cell.j,
+			portal1.i = centerRay.cell.i
+			map.data[portal1.j][portal1.i][portal1.dir] = 11;
+		}
+	} else if(e.which===2) {
 		if(map.data[centerRay.cell.j][centerRay.cell.i][centerRay.dir]===9)
 			map.data[centerRay.cell.j][centerRay.cell.i][centerRay.dir] = 
 				map.init[centerRay.cell.j][centerRay.cell.i][centerRay.dir];
 		else
 			map.data[centerRay.cell.j][centerRay.cell.i][centerRay.dir] = 9;
 	} else if(e.which===3) {
-		
+		if(centerRay.cell.j != portal1.j || centerRay.cell.i != portal1.i || centerRay.dir != portal1.dir) {
+			map.data[portal2.j][portal2.i][portal2.dir] = 
+				map.init[portal2.j][portal2.i][portal2.dir];
+			portal2.dir = centerRay.dir,
+			portal2.j = centerRay.cell.j,
+			portal2.i = centerRay.cell.i
+			map.data[portal2.j][portal2.i][portal2.dir] = 12;
+		}
 	}
 }
 
 // Load
 async function start() {
 	map.data = map.init.map(arr=>arr.map(arr=>[...arr]));
+	map.data[portal1.j][portal1.i][portal1.dir] = 11;
+	map.data[portal2.j][portal2.i][portal2.dir] = 12;
 	
 	textures[0] = {
 		data: [[[0,0,0,0]]],
@@ -793,7 +1092,8 @@ async function start() {
 		height: 1,
 		id: 0
 	}
-	newSprite(10,.75,.75,0,0,0); // Player
+	newSprite(10,.75,.75,-1,1,0); // Player
+	newSprite(10,.75,.75,-1,1,0); // Player on portal
 	newSprite(7,.5,.5,2.,-8.,-60);
 	newSprite(7,.5,.5,4.,-8.,-60);
 	newSprite(7,.5,.5,6.,-8.,-60);
@@ -804,6 +1104,12 @@ async function start() {
 		textures[i] = await loadTexture(i);
 	textures[6].type = textureTypes.transparent;
 	textures[9].type = textureTypes.mirror;
+	textures[11].type = textureTypes.portal1;
+	textures[12].type = textureTypes.portal2;
+	
+	player.i = Math.floor(player.x);
+	player.j = Math.floor(-player.y);
+	
 	window.requestAnimationFrame(onframe);
 }
 start();
