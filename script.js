@@ -1066,7 +1066,8 @@ function mouseDown(e) {
 		if(map.data[centerRay.cell.j][centerRay.cell.i][centerRay.dir]===9)
 			map.data[centerRay.cell.j][centerRay.cell.i][centerRay.dir] = 
 				map.init[centerRay.cell.j][centerRay.cell.i][centerRay.dir];
-		else
+		else if(map.data[centerRay.cell.j][centerRay.cell.i][centerRay.dir]!=11 &&
+			map.data[centerRay.cell.j][centerRay.cell.i][centerRay.dir]!=12)
 			map.data[centerRay.cell.j][centerRay.cell.i][centerRay.dir] = 9;
 	} else if(e.which===3) {
 		if(centerRay.cell.j != portal1.j || centerRay.cell.i != portal1.i || centerRay.dir != portal1.dir) {
